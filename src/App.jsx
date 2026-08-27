@@ -1,39 +1,36 @@
 import { useEffect } from "react";
 import Lenis from "lenis";
+import "lenis/dist/lenis.css";
 
 import "./App.css";
+
+import Projects from "./components/Projects";
 import Experience from "./components/Experience";
 
 function App() {
   /* ==========================================
-     SMOOTH PAGE SCROLLING
+     SMOOTH SCROLLING
   ========================================== */
 
   useEffect(() => {
     const lenis = new Lenis({
       autoRaf: true,
-
-      /*
-        Controls how quickly scrolling catches up.
-
-        Smaller = softer / floatier
-        Larger = faster / more responsive
-
-        0.15 is a good middle ground.
-      */
-      lerp: 0.10,
-
-      /*
-        Smooth mouse-wheel scrolling.
-      */
       smoothWheel: true,
 
       /*
-        1 = normal wheel distance
-        Below 1 = slightly slower
-        Above 1 = faster
+        Lower = floatier
+        Higher = more responsive
       */
+      lerp: 0.12,
+
       wheelMultiplier: 0.9,
+
+      /*
+        Allows navigation links like
+        #projects and #experience to
+        scroll smoothly.
+      */
+      anchors: true,
     });
 
     return () => {
@@ -49,7 +46,6 @@ function App() {
       ====================================== */}
 
       <header className="navbar">
-
         <a
           href="#home"
           className="nav-logo"
@@ -58,7 +54,6 @@ function App() {
         </a>
 
         <nav className="nav-links">
-
           <a href="#projects">
             Projects
           </a>
@@ -70,9 +65,7 @@ function App() {
           <a href="#contact">
             Contact
           </a>
-
         </nav>
-
       </header>
 
 
@@ -90,7 +83,6 @@ function App() {
           className="hero section"
           id="home"
         >
-
           <div className="hero-content">
 
             <p className="eyebrow">
@@ -133,14 +125,15 @@ function App() {
 
           {/* Decorative hero background */}
 
-          <div className="hero-decoration">
-
+          <div
+            className="hero-decoration"
+            aria-hidden="true"
+          >
             <div className="hero-orb hero-orb-one" />
 
             <div className="hero-orb hero-orb-two" />
 
             <div className="hero-grid" />
-
           </div>
 
         </section>
@@ -150,54 +143,7 @@ function App() {
             PROJECTS
         ==================================== */}
 
-        <section
-          className="projects section"
-          id="projects"
-        >
-
-          <div className="section-heading">
-
-            <p className="section-number">
-              01
-            </p>
-
-            <div>
-
-              <p className="eyebrow">
-                SELECTED WORK
-              </p>
-
-              <h2>
-                Projects
-              </h2>
-
-            </div>
-
-          </div>
-
-
-          {/*
-            Temporary placeholder.
-
-            We will replace this with the
-            colorful expandable project cards.
-          */}
-
-          <div className="placeholder-panel">
-
-            <p>
-              Projects section
-            </p>
-
-            <span>
-              This will become the colorful,
-              rounded project layout with
-              expandable project cards.
-            </span>
-
-          </div>
-
-        </section>
+        <Projects />
 
 
         {/* ====================================
@@ -210,14 +156,13 @@ function App() {
 
 
       {/* ======================================
-          FOOTER / CONTACT
+          FOOTER
       ====================================== */}
 
       <footer
         className="footer"
         id="contact"
       >
-
         <div>
 
           <p className="eyebrow">
