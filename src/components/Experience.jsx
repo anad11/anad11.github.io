@@ -9,136 +9,305 @@ import { experiences } from "../data/experience";
 import ExperienceCard from "./ExperienceCard";
 import "../styles/experience.css";
 
+/*
+  Must match the CSS grid size.
+*/
+const GRID_SIZE = 50;
+
+/*
+  How long a cursor square takes to disappear.
+*/
+const TILE_LIFETIME = 1000;
+
 function Experience() {
   const sectionRef = useRef(null);
   const listRef = useRef(null);
+
   const dotRefs = useRef([]);
   const progressRef = useRef(null);
+
+  const trailLayerRef = useRef(null);
+  const lastCellRef = useRef(null);
+  const activeTilesRef = useRef(new Map());
+
   const animationFrameRef = useRef(null);
 
-  const [timelineLayout, setTimelineLayout] = useState({
-    top: 0,
-    height: 0,
-    stops: [],
-  });
+  const [timelineLayout, setTimelineLayout] =
+    useState({
+      top: 0,
+      height: 0,
+      stops: [],
+    });
 
-  const [reachedIndex, setReachedIndex] = useState(-1);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [reachedIndex, setReachedIndex] =
+    useState(-1);
+
+  const [activeIndex, setActiveIndex] =
+    useState(0);
 
   /* ==================================================
-     CURSOR BACKGROUND
+     CURSOR GRID TRAIL
   ================================================== */
+
+  const createTrailTile = (
+    column,
+    row,
+    color
+  ) => {
+    const layer = trailLayerRef.current;
+
+    if (!layer) return;
+
+    const key = `${column}-${row}`;
+
+    /*
+      If the cursor returns to a square that
+      is already fading, restart that square.
+    */
+    const oldTile =
+      activeTilesRef.current.get(key);
+
+    if (oldTile) {
+      clearTimeout(oldTile.timeout);
+
+      oldTile.element.remove();
+
+      activeTilesRef.current.delete(key);
+    }
+
+    const tile =
+      document.createElement("div");
+
+    tile.className =
+      "experience-trail-tile";
+
+    tile.style.left =
+      `${column * GRID_SIZE}px`;
+
+    tile.style.top =
+      `${row * GRID_SIZE}px`;
+
+    tile.style.setProperty(
+      "--tile-color",
+      color
+    );
+
+    layer.appendChild(tile);
+
+    /*
+      Remove tile after its fade animation.
+    */
+    const timeout = setTimeout(() => {
+      tile.remove();
+
+      activeTilesRef.current.delete(
+        key
+      );
+    }, TILE_LIFETIME);
+
+    activeTilesRef.current.set(key, {
+      element: tile,
+      timeout,
+    });
+  };
 
   const handleMouseMove = (event) => {
     const section = sectionRef.current;
 
     if (!section) return;
 
-    const rect = section.getBoundingClientRect();
+    const rect =
+      section.getBoundingClientRect();
 
-    section.style.setProperty(
-      "--mouse-x",
-      `${event.clientX - rect.left}px`
-    );
+    /*
+      Mouse coordinates relative to the
+      entire Experience section.
+    */
+    const x =
+      event.clientX - rect.left;
 
-    section.style.setProperty(
-      "--mouse-y",
-      `${event.clientY - rect.top}px`
-    );
-  };
+    const y =
+      event.clientY - rect.top;
 
-  /* ==================================================
-     MEASURE EXACT DOT POSITIONS
-  ================================================== */
+    /*
+      Snap cursor to grid.
+    */
+    const column =
+      Math.floor(x / GRID_SIZE);
 
-  const measureTimeline = () => {
-    const list = listRef.current;
-    const dots = dotRefs.current.filter(Boolean);
+    const row =
+      Math.floor(y / GRID_SIZE);
 
-    if (!list || dots.length !== experiences.length) {
+    const currentCell = {
+      column,
+      row,
+    };
+
+    const lastCell =
+      lastCellRef.current;
+
+    const currentColor =
+      experiences[activeIndex].color;
+
+    /*
+      First square.
+    */
+    if (!lastCell) {
+      createTrailTile(
+        column,
+        row,
+        currentColor
+      );
+
+      lastCellRef.current =
+        currentCell;
+
       return;
     }
 
-    const listRect = list.getBoundingClientRect();
+    /*
+      Cursor is still in the same square.
+      Do nothing.
+    */
+    if (
+      lastCell.column === column &&
+      lastCell.row === row
+    ) {
+      return;
+    }
 
-    const relativeCenters = dots.map((dot) => {
-      const rect = dot.getBoundingClientRect();
+    /*
+      Fill intermediate squares if the
+      cursor moves quickly.
 
-      return (
-        rect.top -
-        listRect.top +
-        rect.height / 2
+      This prevents gaps in the trail.
+    */
+    const deltaColumn =
+      column - lastCell.column;
+
+    const deltaRow =
+      row - lastCell.row;
+
+    const steps = Math.max(
+      Math.abs(deltaColumn),
+      Math.abs(deltaRow)
+    );
+
+    for (
+      let step = 1;
+      step <= steps;
+      step++
+    ) {
+      const progress =
+        step / steps;
+
+      const interpolatedColumn =
+        Math.round(
+          lastCell.column +
+            deltaColumn * progress
+        );
+
+      const interpolatedRow =
+        Math.round(
+          lastCell.row +
+            deltaRow * progress
+        );
+
+      createTrailTile(
+        interpolatedColumn,
+        interpolatedRow,
+        currentColor
       );
-    });
+    }
 
-    const first = relativeCenters[0];
+    lastCellRef.current =
+      currentCell;
+  };
+
+  const handleMouseLeave = () => {
+    /*
+      Allows a new trail to begin naturally
+      when the cursor re-enters.
+    */
+    lastCellRef.current = null;
+  };
+
+  /* ==================================================
+     MEASURE TIMELINE
+  ================================================== */
+
+  const measureTimeline = () => {
+    const list =
+      listRef.current;
+
+    const dots =
+      dotRefs.current.filter(Boolean);
+
+    if (
+      !list ||
+      dots.length !== experiences.length
+    ) {
+      return;
+    }
+
+    const listRect =
+      list.getBoundingClientRect();
+
+    const relativeCenters =
+      dots.map((dot) => {
+        const rect =
+          dot.getBoundingClientRect();
+
+        return (
+          rect.top -
+          listRect.top +
+          rect.height / 2
+        );
+      });
+
+    const first =
+      relativeCenters[0];
 
     const last =
       relativeCenters[
         relativeCenters.length - 1
       ];
 
-    const height = Math.max(
-      0,
-      last - first
-    );
+    const height =
+      Math.max(
+        0,
+        last - first
+      );
 
-    const stops = relativeCenters.map(
-      (position) => {
-        if (height === 0) {
-          return 0;
+    const stops =
+      relativeCenters.map(
+        (position) => {
+          if (height === 0) {
+            return 0;
+          }
+
+          return (
+            ((position - first) /
+              height) *
+            100
+          );
         }
+      );
 
-        return (
-          ((position - first) / height) *
-          100
-        );
-      }
-    );
-
-    setTimelineLayout((previous) => {
-      const sameStops =
-        previous.stops.length ===
-          stops.length &&
-        previous.stops.every(
-          (stop, index) =>
-            Math.abs(
-              stop - stops[index]
-            ) < 0.01
-        );
-
-      if (
-        Math.abs(
-          previous.top - first
-        ) < 0.5 &&
-        Math.abs(
-          previous.height - height
-        ) < 0.5 &&
-        sameStops
-      ) {
-        return previous;
-      }
-
-      return {
-        top: first,
-        height,
-        stops,
-      };
+    setTimelineLayout({
+      top: first,
+      height,
+      stops,
     });
   };
 
   /* ==================================================
-     UPDATE TIMELINE ON SCROLL
+     UPDATE TIMELINE
   ================================================== */
 
   const updateTimeline = () => {
-    /*
-      Only allow one update per
-      browser frame.
-    */
     if (
-      animationFrameRef.current !==
-      null
+      animationFrameRef.current !== null
     ) {
       return;
     }
@@ -162,12 +331,8 @@ function Experience() {
             return;
           }
 
-          /*
-            Get exact dot centers relative
-            to the browser viewport.
-          */
-          const dotCenters = dots.map(
-            (dot) => {
+          const dotCenters =
+            dots.map((dot) => {
               const rect =
                 dot.getBoundingClientRect();
 
@@ -175,8 +340,7 @@ function Experience() {
                 rect.top +
                 rect.height / 2
               );
-            }
-          );
+            });
 
           const first =
             dotCenters[0];
@@ -186,95 +350,78 @@ function Experience() {
               dotCenters.length - 1
             ];
 
-          const totalHeight = Math.max(
-            0,
-            last - first
-          );
+          const totalHeight =
+            Math.max(
+              0,
+              last - first
+            );
 
           /*
-            Middle of browser window
-            controls the progress point.
+            Middle of screen determines
+            timeline progress.
           */
           const marker =
             window.innerHeight * 0.5;
 
-          /*
-            How far has the marker travelled
-            between first and last dot?
-          */
-          const filled = Math.max(
-            0,
-            Math.min(
-              totalHeight,
-              marker - first
-            )
-          );
+          const filled =
+            Math.max(
+              0,
+              Math.min(
+                totalHeight,
+                marker - first
+              )
+            );
 
           /*
-            Update the timeline directly.
+            IMPORTANT:
 
-            This avoids React having to
-            rerender continuously while
-            scrolling.
+            Keep gradient full-height and
+            reveal it using clip-path.
+
+            This keeps colors aligned
+            with their timeline dots.
           */
-          progressBar.style.height =
-            `${filled}px`;
+          const progress =
+            totalHeight > 0
+              ? filled /
+                totalHeight
+              : 0;
 
-          /* ====================================
+          const hiddenPercent =
+            (1 - progress) * 100;
+
+          progressBar.style.clipPath =
+            `inset(0 0 ${hiddenPercent}% 0)`;
+
+          /* ==================================
              DOT ACTIVATION
+          ================================== */
 
-             Same marker as the line.
-
-             Therefore:
-             line reaches dot center
-                    ↓
-             dot lights immediately
-          ==================================== */
-
-          let newestReached = -1;
+          let newestReached =
+            -1;
 
           dotCenters.forEach(
             (dotCenter, index) => {
               if (
                 marker >= dotCenter
               ) {
-                newestReached = index;
+                newestReached =
+                  index;
               }
             }
           );
 
-          setReachedIndex((previous) =>
-            previous === newestReached
-              ? previous
-              : newestReached
+          setReachedIndex(
+            newestReached
           );
 
-          const nextActiveIndex =
+          setActiveIndex(
             Math.max(
               0,
               newestReached
-            );
-
-          setActiveIndex((previous) =>
-            previous ===
-            nextActiveIndex
-              ? previous
-              : nextActiveIndex
+            )
           );
         } finally {
-          /*
-            THIS WAS THE IMPORTANT BUG.
-
-            React StrictMode runs effects
-            twice during development.
-
-            The old code cancelled the
-            animation frame but left this
-            ref non-null.
-
-            Then every scroll returned
-            immediately forever.
-          */
           animationFrameRef.current =
             null;
         }
@@ -282,7 +429,7 @@ function Experience() {
   };
 
   /* ==================================================
-     INITIAL MEASUREMENT
+     INITIAL LAYOUT
   ================================================== */
 
   useLayoutEffect(() => {
@@ -297,10 +444,6 @@ function Experience() {
     return () => {
       cancelAnimationFrame(frame);
 
-      /*
-        Also clear any pending timeline
-        frame during StrictMode cleanup.
-      */
       if (
         animationFrameRef.current !==
         null
@@ -316,14 +459,10 @@ function Experience() {
   }, []);
 
   /* ==================================================
-     SCROLL / RESIZE / IMAGE CHANGES
+     EVENT LISTENERS
   ================================================== */
 
   useEffect(() => {
-    const handleScroll = () => {
-      updateTimeline();
-    };
-
     const handleResize = () => {
       measureTimeline();
       updateTimeline();
@@ -331,7 +470,7 @@ function Experience() {
 
     window.addEventListener(
       "scroll",
-      handleScroll,
+      updateTimeline,
       {
         passive: true,
       }
@@ -342,10 +481,6 @@ function Experience() {
       handleResize
     );
 
-    /*
-      Recalculate if the experience
-      section changes size.
-    */
     let resizeObserver;
 
     if (
@@ -364,60 +499,20 @@ function Experience() {
       );
     }
 
-    /*
-      Recalculate after fonts load.
-    */
     if (document.fonts?.ready) {
-      document.fonts.ready.then(
-        () => {
-          measureTimeline();
-          updateTimeline();
-        }
-      );
+      document.fonts.ready.then(() => {
+        measureTimeline();
+        updateTimeline();
+      });
     }
 
-    /*
-      Recalculate when company
-      photos/logos finish loading.
-    */
-    const images =
-      listRef.current
-        ? Array.from(
-            listRef.current.querySelectorAll(
-              "img"
-            )
-          )
-        : [];
-
-    const handleImageLoad = () => {
-      measureTimeline();
-      updateTimeline();
-    };
-
-    images.forEach((image) => {
-      if (!image.complete) {
-        image.addEventListener(
-          "load",
-          handleImageLoad
-        );
-
-        image.addEventListener(
-          "error",
-          handleImageLoad
-        );
-      }
-    });
-
-    /*
-      Initial update.
-    */
     measureTimeline();
     updateTimeline();
 
     return () => {
       window.removeEventListener(
         "scroll",
-        handleScroll
+        updateTimeline
       );
 
       window.removeEventListener(
@@ -429,22 +524,6 @@ function Experience() {
         resizeObserver.disconnect();
       }
 
-      images.forEach((image) => {
-        image.removeEventListener(
-          "load",
-          handleImageLoad
-        );
-
-        image.removeEventListener(
-          "error",
-          handleImageLoad
-        );
-      });
-
-      /*
-        CRITICAL:
-        cancel AND reset the ref.
-      */
       if (
         animationFrameRef.current !==
         null
@@ -456,6 +535,18 @@ function Experience() {
         animationFrameRef.current =
           null;
       }
+
+      /*
+        Clean up cursor tiles.
+      */
+      activeTilesRef.current.forEach(
+        ({ element, timeout }) => {
+          clearTimeout(timeout);
+          element.remove();
+        }
+      );
+
+      activeTilesRef.current.clear();
     };
   }, []);
 
@@ -492,31 +583,44 @@ function Experience() {
       className="experience-section section"
       id="experience"
       onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       style={{
-        "--active-glow":
-          experiences[
-            activeIndex
-          ].glow,
-
         "--timeline-gradient":
           timelineGradient,
+
+        "--grid-size":
+          `${GRID_SIZE}px`,
       }}
     >
-      {/* Cursor glow */}
+      {/* ========================================
+          GRID BACKGROUND
+      ======================================== */}
 
       <div
-        className="experience-cursor-glow"
+        className="experience-grid"
         aria-hidden="true"
       />
 
-      {/* Heading */}
+      {/* Colored cursor squares */}
+
+      <div
+        ref={trailLayerRef}
+        className="experience-grid-trail"
+        aria-hidden="true"
+      />
+
+      {/* ========================================
+          HEADING
+      ======================================== */}
 
       <div className="section-heading experience-heading">
+
         <p className="section-number">
           02
         </p>
 
         <div>
+
           <p className="eyebrow">
             WHERE I'VE WORKED
           </p>
@@ -524,10 +628,14 @@ function Experience() {
           <h2>
             Experience
           </h2>
+
         </div>
+
       </div>
 
-      {/* Timeline + cards */}
+      {/* ========================================
+          EXPERIENCE LIST
+      ======================================== */}
 
       <div
         ref={listRef}
@@ -545,11 +653,7 @@ function Experience() {
               `${timelineLayout.height}px`,
           }}
         >
-          {/* Gray full line */}
-
           <div className="timeline-track" />
-
-          {/* Colored moving line */}
 
           <div
             ref={progressRef}
@@ -557,7 +661,7 @@ function Experience() {
           />
         </div>
 
-        {/* Experience entries */}
+        {/* Cards */}
 
         {experiences.map(
           (experience, index) => (
@@ -566,21 +670,18 @@ function Experience() {
               className={`
                 experience-row
                 ${
-                  index ===
-                  activeIndex
+                  index === activeIndex
                     ? "is-active"
                     : ""
                 }
               `}
             >
-              {/* Timeline dot */}
-
               <div className="timeline-dot-column">
+
                 <div
                   ref={(element) => {
-                    dotRefs.current[
-                      index
-                    ] = element;
+                    dotRefs.current[index] =
+                      element;
                   }}
                   className={`
                     experience-dot
@@ -598,18 +699,17 @@ function Experience() {
                 >
                   <div className="dot-center" />
                 </div>
+
               </div>
 
-              {/* Experience card */}
-
               <ExperienceCard
-                experience={
-                  experience
-                }
+                experience={experience}
               />
+
             </div>
           )
         )}
+
       </div>
     </section>
   );

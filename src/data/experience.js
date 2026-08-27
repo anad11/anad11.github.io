@@ -67,8 +67,8 @@ export const experiences = [
     date: "May 2025 – August 2025",
 
     logo: "/images/schneiderlogo.png",
-    photo: "/images/schneiderphoto.png",
-    logoBackground: "#ecececf7",
+    photo: "/images/schneider1photo.png",
+    logoBackground: "#e9e7e7",
 
     color: "#8274ff",
     glow: "rgba(130, 116, 255, 0.18)",
@@ -97,8 +97,8 @@ export const experiences = [
     date: "September 2024 – December 2024",
 
     logo: "/images/schneiderlogo.png",
-    photo: "/images/schneiderphoto.png",
-    logoBackground: "#ecececf7",
+    photo: "/images/schneider2photo.png",
+    logoBackground: "#e9e7e7",
 
     color: "#ff7597",
     glow: "rgba(255, 117, 151, 0.18)",
@@ -128,7 +128,7 @@ export const experiences = [
 
     logo: "/images/petpowerlogo.png",
     photo: "/images/petpowerphoto.png",
-    logoBackground: "#f3f3f1",
+    logoBackground: "#fffffb",
 
     color: "#f5c84c",
     glow: "rgba(245, 200, 76, 0.18)",
