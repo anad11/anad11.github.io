@@ -40,7 +40,7 @@ function ExperienceCard({ experience }) {
           <div className="experience-tags">
             {experience.tags.map((tag) => (
               <span key={tag}>
-                #{tag.replace(/\s+/g, "")}
+                {tag}
               </span>
             ))}
           </div>
@@ -61,15 +61,28 @@ function ExperienceCard({ experience }) {
               className="experience-photo"
               src={experience.photo}
               alt={`${experience.company} experience`}
+              loading="lazy"
+              decoding="async"
             />
 
             {/* Floating company logo */}
 
             <div className="company-logo-card">
-              <img
-                src={experience.logo}
-                alt={`${experience.company} logo`}
-              />
+              {experience.logo ? (
+                <img
+                  src={experience.logo}
+                  alt={`${experience.company} logo`}
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <span
+                  className="company-logo-initials"
+                  aria-label={`${experience.company} initials`}
+                >
+                  {experience.logoText || experience.company.slice(0, 2)}
+                </span>
+              )}
             </div>
 
           </div>

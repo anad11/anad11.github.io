@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { projects } from "../data/projects";
 import ProjectCard from "./ProjectCard";
 import "../styles/projects.css";
 
 
-function Projects() {
+function Projects({ lenisRef }) {
 
   const [
     expandedProject,
@@ -23,6 +23,33 @@ function Projects() {
 
   };
 
+  useEffect(() => {
+    if (!expandedProject) return undefined;
+
+    const bodyOverflow = document.body.style.overflow;
+    const rootOverflow = document.documentElement.style.overflow;
+    const lenis = lenisRef?.current;
+
+    lenis?.stop();
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setExpandedProject(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = rootOverflow;
+      lenis?.start();
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [expandedProject, lenisRef]);
+
 
   return (
     <section
@@ -32,16 +59,7 @@ function Projects() {
 
       <div className="section-heading projects-heading">
 
-        <p className="section-number">
-          01
-        </p>
-
-
         <div>
-
-          <p className="eyebrow">
-            THINGS I'VE BUILT
-          </p>
 
           <h2>
             Projects

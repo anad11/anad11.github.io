@@ -5,7 +5,12 @@
 .experience-section {
   position: relative;
 
-  background: #121212;
+  /* Match the transition's shared 40-column layout. */
+  --grid-size: 2.5vw;
+
+  background: #f2efef;
+
+  color: #161925;
 
   overflow: hidden;
 }
@@ -14,6 +19,7 @@
 
 .experience-grid {
   position: absolute;
+
   inset: 0;
 
   z-index: 0;
@@ -22,17 +28,17 @@
 
   background-image:
     linear-gradient(
-      rgba(255, 255, 255, 0.045) 1px,
-      transparent 1px
+      rgba(15, 38, 84, 0.14) 0.5px,
+      transparent 0.5px
     ),
     linear-gradient(
       90deg,
-      rgba(255, 255, 255, 0.045) 1px,
-      transparent 1px
+      rgba(15, 38, 84, 0.14) 0.5px,
+      transparent 0.5px
     );
 
   background-size:
-    var(--grid-size)
+    calc(100% / var(--transition-columns))
     var(--grid-size);
 }
 
@@ -63,7 +69,7 @@
     Keeps a thin dark grid line visible
     between illuminated squares.
   */
-  border: 2px solid #09090b;
+  border: 1px solid #09090b;
 
   background: var(--tile-color);
 
@@ -71,16 +77,14 @@
 
   animation:
     experienceTileFade
-    1.1s ease-out
+    0.75s ease-out
     forwards;
-
-  will-change: opacity;
 }
 
 
 @keyframes experienceTileFade {
   0% {
-    opacity: 0.68;
+    opacity: 0.82;
   }
 
   20% {
@@ -106,6 +110,7 @@
 
 .experience-heading {
   position: relative;
+  margin-left: 30px;
 }
 
 
@@ -153,20 +158,10 @@
 
   border-radius: 999px;
 
-  background:
-    rgba(255, 255, 255, 0.12);
+  background: #4a4a4a;
 }
 
-/*
-
-  This element stays FULL HEIGHT.
-
-  Experience.jsx reveals it using clip-path.
-
-  That prevents the gradient from stretching
-  as the user scrolls, so each timeline color
-  stays aligned with its corresponding dot.
-*/
+/* Keep the gradient full-height and reveal it without resizing it. */
 
 .timeline-progress {
   position: absolute;
@@ -179,19 +174,53 @@
 
   border-radius: 999px;
 
-  background:
-    var(--timeline-gradient);
-
-  clip-path:
-    inset(0 0 100% 0);
+  clip-path: inset(0 0 100% 0);
 
   transition: none;
 
+  z-index: 2;
+}
+
+
+.timeline-progress-fill {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 100%;
+
+  border-radius: 999px;
+
+  background: var(--timeline-gradient);
   box-shadow:
     0 0 14px
     rgba(255, 255, 255, 0.12);
+}
 
-  z-index: 2;
+
+@keyframes timeline-progress-reveal {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+
+@supports (animation-timeline: scroll(root block)) {
+  .timeline-progress {
+    animation-name: timeline-progress-reveal;
+    animation-duration: 1s;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: scroll(root block);
+    animation-range-start: var(--timeline-range-start, 0%);
+    animation-range-end: var(--timeline-range-end, 100%);
+  }
 }
 
 .experience-row {
@@ -246,11 +275,6 @@
     2px solid
     rgba(255, 255, 255, 0.25);
 
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
-
   z-index: 6;
 }
 
@@ -266,8 +290,6 @@
   background:
     rgba(255, 255, 255, 0.28);
 
-  transition:
-    background 0.15s ease;
 }
 
 
@@ -306,12 +328,6 @@
   Slight enlargement for current experience.
 */
 
-.experience-row.is-active
-.experience-dot {
-  transform: scale(1.12);
-}
-
-
 /* ==================================================
    EXPERIENCE CARD
 ================================================== */
@@ -325,8 +341,7 @@
 
   border-radius: 34px;
 
-  background:
-    rgba(18, 18, 22, 0.88);
+  background: #19191e;
 
   border:
     1px solid
@@ -335,12 +350,6 @@
   box-shadow:
     0 30px 80px
     rgba(0, 0, 0, 0.22);
-
-  backdrop-filter:
-    blur(16px);
-
-  -webkit-backdrop-filter:
-    blur(16px);
 
   transition:
     transform 0.3s ease,
@@ -377,27 +386,6 @@
       var(--accent) 30%,
       transparent
     );
-}
-
-
-/* ==================================================
-   ACTIVE CARD
-================================================== */
-
-.experience-row.is-active
-.experience-card {
-  transform:
-    translateY(-4px);
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--accent) 30%,
-      rgba(255, 255, 255, 0.08)
-    );
-
-  background:
-    rgba(21, 21, 26, 0.94);
 }
 
 
@@ -448,6 +436,8 @@
 
 .experience-role {
   margin: 0;
+
+  color: #ffffff;
 
   font-size:
     clamp(
@@ -759,24 +749,18 @@
 }
 
 
-/* ==================================================
-   ACTIVE IMAGE MOTION
-================================================== */
+.company-logo-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-.experience-row.is-active
-.experience-photo {
-  transform:
-    translateY(-3px);
-}
+  width: 100%;
+  height: 100%;
 
-
-.experience-row.is-active
-.company-logo-card {
-  transform:
-    translate(
-      4px,
-      -4px
-    );
+  color: var(--accent);
+  font-size: clamp(2rem, 5vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: -0.08em;
 }
 
 
@@ -785,6 +769,11 @@
 ================================================== */
 
 @media (max-width: 1050px) {
+
+  .experience-card-content {
+    padding-right: clamp(24px, 4vw, 42px);
+    padding-left: clamp(24px, 4vw, 42px);
+  }
 
   .experience-card-content {
     grid-template-columns:
@@ -816,21 +805,20 @@
 
 }
 
-
 /* ==================================================
    MOBILE
 ================================================== */
 
 @media (max-width: 700px) {
 
-  /*
-    Smaller grid cells on mobile.
-  */
-
-  .experience-section {
-    --grid-size: 75px !important;
+  .experience-heading {
+    margin-left: 16.5px;
   }
 
+  /* Keep all 40 grid columns aligned on mobile too. */
+  .experience-section {
+    --grid-size: 2.5vw !important;
+  }
 
   .experience-row {
     grid-template-columns:
@@ -958,3 +946,6 @@
   }
 
 }
+
+
+

@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -9,41 +10,37 @@ import { experiences } from "../data/experience";
 import ExperienceCard from "./ExperienceCard";
 import "../styles/experience.css";
 
-/*
-  Must match the CSS grid size.
-*/
-const GRID_SIZE = 50;
-
-/*
-  How long a cursor square takes to disappear.
-*/
-const TILE_LIFETIME = 1000;
-
 function Experience() {
   const sectionRef = useRef(null);
   const listRef = useRef(null);
 
   const dotRefs = useRef([]);
+  const dotCentersRef = useRef([]);
   const progressRef = useRef(null);
 
   const trailLayerRef = useRef(null);
   const lastCellRef = useRef(null);
   const activeTilesRef = useRef(new Map());
+  const gridSizeRef = useRef(0);
 
   const animationFrameRef = useRef(null);
+  const supportsScrollTimelineRef = useRef(
+    typeof CSS !== "undefined" &&
+      CSS.supports("animation-timeline: scroll(root block)") &&
+      CSS.supports("animation-range-start: 0%") &&
+      CSS.supports("animation-range-end: 100%")
+  );
 
   const [timelineLayout, setTimelineLayout] =
     useState({
       top: 0,
       height: 0,
       stops: [],
+      scrollStart: 0,
+      scrollEnd: 100,
     });
 
-  const [reachedIndex, setReachedIndex] =
-    useState(-1);
-
-  const [activeIndex, setActiveIndex] =
-    useState(0);
+  const reachedIndexRef = useRef(-1);
 
   /* ==================================================
      CURSOR GRID TRAIL
@@ -52,7 +49,8 @@ function Experience() {
   const createTrailTile = (
     column,
     row,
-    color
+    color,
+    gridSize
   ) => {
     const layer = trailLayerRef.current;
 
@@ -68,9 +66,7 @@ function Experience() {
       activeTilesRef.current.get(key);
 
     if (oldTile) {
-      clearTimeout(oldTile.timeout);
-
-      oldTile.element.remove();
+      oldTile.remove();
 
       activeTilesRef.current.delete(key);
     }
@@ -82,10 +78,13 @@ function Experience() {
       "experience-trail-tile";
 
     tile.style.left =
-      `${column * GRID_SIZE}px`;
+      `${column * gridSize}px`;
 
     tile.style.top =
-      `${row * GRID_SIZE}px`;
+      `${row * gridSize}px`;
+
+    tile.style.width = `${gridSize}px`;
+    tile.style.height = `${gridSize}px`;
 
     tile.style.setProperty(
       "--tile-color",
@@ -94,30 +93,52 @@ function Experience() {
 
     layer.appendChild(tile);
 
-    /*
-      Remove tile after its fade animation.
-    */
-    const timeout = setTimeout(() => {
+    tile.addEventListener("animationend", () => {
       tile.remove();
 
-      activeTilesRef.current.delete(
-        key
-      );
-    }, TILE_LIFETIME);
+      if (activeTilesRef.current.get(key) === tile) {
+        activeTilesRef.current.delete(key);
+      }
+    }, { once: true });
 
-    activeTilesRef.current.set(key, {
-      element: tile,
-      timeout,
-    });
+    activeTilesRef.current.set(key, tile);
+  };
+
+  const cacheGridSize = () => {
+    const grid = sectionRef.current?.querySelector(".experience-grid");
+
+    if (!grid) return;
+
+    const columnCount = Number.parseFloat(
+      window.getComputedStyle(document.documentElement)
+        .getPropertyValue("--transition-columns")
+    );
+
+    const size =
+      grid.getBoundingClientRect().width /
+      (Number.isFinite(columnCount) && columnCount > 0
+        ? columnCount
+        : 40);
+
+    if (Number.isFinite(size) && size > 0) {
+      gridSizeRef.current = size;
+    }
   };
 
   const handleMouseMove = (event) => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
     const section = sectionRef.current;
 
     if (!section) return;
 
-    const rect =
-      section.getBoundingClientRect();
+    const gridSize = gridSizeRef.current;
+
+    if (!Number.isFinite(gridSize) || gridSize <= 0) return;
+
+    const rect = section.getBoundingClientRect();
 
     /*
       Mouse coordinates relative to the
@@ -133,10 +154,10 @@ function Experience() {
       Snap cursor to grid.
     */
     const column =
-      Math.floor(x / GRID_SIZE);
+      Math.floor(x / gridSize);
 
     const row =
-      Math.floor(y / GRID_SIZE);
+      Math.floor(y / gridSize);
 
     const currentCell = {
       column,
@@ -147,7 +168,7 @@ function Experience() {
       lastCellRef.current;
 
     const currentColor =
-      experiences[activeIndex].color;
+      experiences[Math.max(0, reachedIndexRef.current)].color;
 
     /*
       First square.
@@ -156,7 +177,8 @@ function Experience() {
       createTrailTile(
         column,
         row,
-        currentColor
+        currentColor,
+        gridSize
       );
 
       lastCellRef.current =
@@ -216,7 +238,8 @@ function Experience() {
       createTrailTile(
         interpolatedColumn,
         interpolatedRow,
-        currentColor
+        currentColor,
+        gridSize
       );
     }
 
@@ -253,17 +276,22 @@ function Experience() {
     const listRect =
       list.getBoundingClientRect();
 
-    const relativeCenters =
+    const dotRects =
       dots.map((dot) => {
         const rect =
           dot.getBoundingClientRect();
 
-        return (
-          rect.top -
-          listRect.top +
-          rect.height / 2
-        );
+        return rect;
       });
+
+    const relativeCenters = dotRects.map(
+      (rect) => rect.top - listRect.top + rect.height / 2
+    );
+
+    const absoluteCenters = dotRects.map(
+      (rect) => rect.top + window.scrollY + rect.height / 2
+    );
+    dotCentersRef.current = absoluteCenters;
 
     const first =
       relativeCenters[0];
@@ -294,18 +322,71 @@ function Experience() {
         }
       );
 
+    const maxScroll = Math.max(
+      1,
+      document.documentElement.scrollHeight - window.innerHeight
+    );
+
+    const scrollRangeStart = Math.max(
+      0,
+      Math.min(
+        maxScroll,
+        absoluteCenters[0] - window.innerHeight * 0.5
+      )
+    );
+
+    const scrollRangeEnd = Math.max(
+      scrollRangeStart,
+      Math.min(
+        maxScroll,
+        absoluteCenters[absoluteCenters.length - 1] -
+          window.innerHeight * 0.5
+      )
+    );
+
     setTimelineLayout({
       top: first,
       height,
       stops,
+      scrollStart: (scrollRangeStart / maxScroll) * 100,
+      scrollEnd: (scrollRangeEnd / maxScroll) * 100,
     });
   };
+
+  const updateReachedDots = useCallback((marker) => {
+    const dotCenters = dotCentersRef.current;
+
+    if (dotCenters.length !== experiences.length) {
+      return -1;
+    }
+
+    let newestReached = -1;
+
+    dotCenters.forEach((dotCenter, index) => {
+      if (marker >= dotCenter) {
+        newestReached = index;
+      }
+    });
+
+    if (reachedIndexRef.current !== newestReached) {
+      reachedIndexRef.current = newestReached;
+
+      dotRefs.current.forEach((dot, index) => {
+        dot?.classList.toggle(
+          "is-reached",
+          index <= newestReached
+        );
+      });
+    }
+
+    return newestReached;
+  }, []);
 
   /* ==================================================
      UPDATE TIMELINE
   ================================================== */
 
-  const updateTimeline = () => {
+  const updateTimeline = useCallback(() => {
     if (
       animationFrameRef.current !== null
     ) {
@@ -315,32 +396,17 @@ function Experience() {
     animationFrameRef.current =
       requestAnimationFrame(() => {
         try {
-          const dots =
-            dotRefs.current.filter(
-              Boolean
-            );
-
+          const dotCenters = dotCentersRef.current;
           const progressBar =
             progressRef.current;
 
           if (
-            dots.length !==
+            dotCenters.length !==
               experiences.length ||
             !progressBar
           ) {
             return;
           }
-
-          const dotCenters =
-            dots.map((dot) => {
-              const rect =
-                dot.getBoundingClientRect();
-
-              return (
-                rect.top +
-                rect.height / 2
-              );
-            });
 
           const first =
             dotCenters[0];
@@ -361,6 +427,7 @@ function Experience() {
             timeline progress.
           */
           const marker =
+            window.scrollY +
             window.innerHeight * 0.5;
 
           const filled =
@@ -372,67 +439,36 @@ function Experience() {
               )
             );
 
-          /*
-            IMPORTANT:
+          if (!supportsScrollTimelineRef.current) {
+            const progress =
+              totalHeight > 0
+                ? filled / totalHeight
+                : 0;
 
-            Keep gradient full-height and
-            reveal it using clip-path.
+            const hiddenPercent =
+              (1 - progress) * 100;
 
-            This keeps colors aligned
-            with their timeline dots.
-          */
-          const progress =
-            totalHeight > 0
-              ? filled /
-                totalHeight
-              : 0;
-
-          const hiddenPercent =
-            (1 - progress) * 100;
-
-          progressBar.style.clipPath =
-            `inset(0 0 ${hiddenPercent}% 0)`;
+            progressBar.style.clipPath =
+              `inset(0 0 ${hiddenPercent}% 0)`;
+          }
 
           /* ==================================
              DOT ACTIVATION
           ================================== */
 
-          let newestReached =
-            -1;
-
-          dotCenters.forEach(
-            (dotCenter, index) => {
-              if (
-                marker >= dotCenter
-              ) {
-                newestReached =
-                  index;
-              }
-            }
-          );
-
-          setReachedIndex(
-            newestReached
-          );
-
-          setActiveIndex(
-            Math.max(
-              0,
-              newestReached
-            )
-          );
         } finally {
           animationFrameRef.current =
             null;
         }
       });
-  };
+  }, []);
 
   /* ==================================================
      INITIAL LAYOUT
   ================================================== */
 
   useLayoutEffect(() => {
+    cacheGridSize();
     measureTimeline();
 
     const frame =
@@ -456,21 +492,31 @@ function Experience() {
           null;
       }
     };
-  }, []);
+  }, [updateTimeline]);
 
   /* ==================================================
      EVENT LISTENERS
   ================================================== */
 
   useEffect(() => {
+    const activeTiles = activeTilesRef.current;
+
     const handleResize = () => {
+      cacheGridSize();
       measureTimeline();
+      updateTimeline();
+    };
+
+    const handleScroll = () => {
+      updateReachedDots(
+        window.scrollY + window.innerHeight * 0.5
+      );
       updateTimeline();
     };
 
     window.addEventListener(
       "scroll",
-      updateTimeline,
+      handleScroll,
       {
         passive: true,
       }
@@ -512,7 +558,7 @@ function Experience() {
     return () => {
       window.removeEventListener(
         "scroll",
-        updateTimeline
+        handleScroll
       );
 
       window.removeEventListener(
@@ -539,16 +585,11 @@ function Experience() {
       /*
         Clean up cursor tiles.
       */
-      activeTilesRef.current.forEach(
-        ({ element, timeout }) => {
-          clearTimeout(timeout);
-          element.remove();
-        }
-      );
+      activeTiles.forEach((tile) => tile.remove());
 
-      activeTilesRef.current.clear();
+      activeTiles.clear();
     };
-  }, []);
+  }, [updateReachedDots, updateTimeline]);
 
   /* ==================================================
      TIMELINE COLORS
@@ -582,14 +623,16 @@ function Experience() {
       ref={sectionRef}
       className="experience-section section"
       id="experience"
+      onMouseEnter={cacheGridSize}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{
         "--timeline-gradient":
           timelineGradient,
-
-        "--grid-size":
-          `${GRID_SIZE}px`,
+        "--timeline-range-start":
+          `${timelineLayout.scrollStart}%`,
+        "--timeline-range-end":
+          `${timelineLayout.scrollEnd}%`,
       }}
     >
       {/* ========================================
@@ -615,15 +658,7 @@ function Experience() {
 
       <div className="section-heading experience-heading">
 
-        <p className="section-number">
-          02
-        </p>
-
         <div>
-
-          <p className="eyebrow">
-            WHERE I'VE WORKED
-          </p>
 
           <h2>
             Experience
@@ -658,7 +693,9 @@ function Experience() {
           <div
             ref={progressRef}
             className="timeline-progress"
-          />
+          >
+            <div className="timeline-progress-fill" />
+          </div>
         </div>
 
         {/* Cards */}
@@ -667,14 +704,7 @@ function Experience() {
           (experience, index) => (
             <div
               key={experience.id}
-              className={`
-                experience-row
-                ${
-                  index === activeIndex
-                    ? "is-active"
-                    : ""
-                }
-              `}
+                className="experience-row"
             >
               <div className="timeline-dot-column">
 
@@ -683,15 +713,7 @@ function Experience() {
                     dotRefs.current[index] =
                       element;
                   }}
-                  className={`
-                    experience-dot
-                    ${
-                      index <=
-                      reachedIndex
-                        ? "is-reached"
-                        : ""
-                    }
-                  `}
+                  className="experience-dot"
                   style={{
                     "--accent":
                       experience.color,

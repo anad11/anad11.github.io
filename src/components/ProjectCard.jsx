@@ -1,9 +1,12 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+
+const isVideoPath = (path = "") =>
+  /\.(mp4|webm|ogg|mov)(?:[?#].*)?$/i.test(path);
 
 
 function ExpandedImageCarousel({
   project,
-  onToggle,
 }) {
   const trackRef = useRef(null);
 
@@ -11,13 +14,20 @@ function ExpandedImageCarousel({
     useState(0);
 
 
-  const images =
+  const images = (
     project.images?.length
       ? project.images
       : project.image
         ? [project.image]
-        : [];
-
+        : []
+  ).map((media) =>
+    typeof media === "string"
+      ? {
+          type: isVideoPath(media) ? "video" : "image",
+          src: media,
+        }
+      : { type: "image", ...media }
+  );
 
   const goToImage = (index) => {
     const track = trackRef.current;
@@ -45,16 +55,18 @@ function ExpandedImageCarousel({
       slide.offsetWidth / 2 -
       track.clientWidth / 2;
 
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
 
     track.scrollTo({
       left: targetLeft,
-      behavior: "smooth",
+      behavior: prefersReducedMotion ? "auto" : "smooth",
     });
 
 
     setActiveImage(newIndex);
   };
-
 
   const handleScroll = () => {
     const track = trackRef.current;
@@ -146,7 +158,7 @@ function ExpandedImageCarousel({
         >
 
         {images.map(
-          (image, index) => (
+          (media, index) => (
 
             <div
               key={`${project.id}-${index}`}
@@ -157,15 +169,35 @@ function ExpandedImageCarousel({
               }
             >
 
-              <img
-                className="project-image"
-                src={image}
-                alt={`${project.title} ${index + 1}`}
-              />
+              {media.type === "video" ? (
+                <video
+                  className="project-image project-video"
+                  src={media.src}
+                  poster={media.poster}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  aria-label={`${project.title} video ${index + 1}`}
+                />
+              ) : (
+                <img
+                  className="project-image"
+                  src={media.src}
+                  alt={`${project.title} ${index + 1}`}
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
 
             </div>
 
           )
+        )}
+
+        {!images.length && (
+          <div className="project-media-placeholder">
+            Project media coming soon
+          </div>
         )}
 
       </div>
@@ -230,7 +262,7 @@ function ExpandedImageCarousel({
                     : "project-image-dot"
                 }
 
-                aria-label={`View image ${index + 1}`}
+                aria-label={`View media ${index + 1}`}
 
                 onClick={(
                   event
@@ -252,22 +284,6 @@ function ExpandedImageCarousel({
       )}
 
 
-      {/* CLOSE */}
-
-      <button
-        className="project-number"
-        type="button"
-        aria-label="Close project"
-
-        onClick={(event) => {
-          event.stopPropagation();
-
-          onToggle();
-        }}
-      >
-        −
-      </button>
-
     </div>
   );
 }
@@ -279,10 +295,33 @@ function ProjectCard({
   expanded,
   onToggle,
 }) {
+  const previewCardRef = useRef(null);
+  const closeButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (!expanded) return undefined;
+
+    const previewCard = previewCardRef.current;
+    closeButtonRef.current?.focus();
+
+    return () => previewCard?.focus();
+  }, [expanded]);
+
+  const previewMedia =
+    project.images?.find((media) => {
+      if (typeof media === "string") {
+        return !isVideoPath(media);
+      }
+
+      return media.type !== "video" || media.poster;
+    }) || project.image;
 
   const previewImage =
-    project.images?.[0] ||
-    project.image;
+    typeof previewMedia === "string"
+      ? previewMedia
+      : previewMedia?.type === "image"
+        ? previewMedia.src
+        : previewMedia?.poster;
 
 
   return (
@@ -293,7 +332,20 @@ function ProjectCard({
       ========================= */}
 
       <article
+        ref={previewCardRef}
         className="project-card"
+        role="button"
+        tabIndex={0}
+        aria-label={`Open ${project.title} project details`}
+        aria-haspopup="dialog"
+        aria-expanded={expanded}
+        onClick={onToggle}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onToggle();
+          }
+        }}
 
         style={{
           "--project-color":
@@ -301,6 +353,9 @@ function ProjectCard({
 
           "--project-surface":
             project.surface,
+
+          "--project-text-color":
+            project.textColor || "#ffffff",
         }}
       >
 
@@ -308,24 +363,22 @@ function ProjectCard({
 
           <div className="project-image-wrapper">
 
-            <img
-              className="project-image"
-              src={previewImage}
-              alt={project.title}
-            />
+            {previewImage ? (
+              <img
+                className="project-image"
+                src={previewImage}
+                alt={project.title}
+                  loading="lazy"
+                  decoding="async"
+              />
+            ) : (
+              <div className="project-media-placeholder">
+                {project.title}
+              </div>
+            )}
 
-
-            <button
-              className="project-number"
-              type="button"
-              aria-label="Expand project"
-              onClick={onToggle}
-            >
-              +
-            </button>
 
           </div>
-
 
           <div className="project-preview-copy">
 
@@ -350,11 +403,7 @@ function ProjectCard({
                 (tag) => (
 
                   <span key={tag}>
-                    #
-                    {tag.replace(
-                      /\s+/g,
-                      ""
-                    )}
+                    {tag}
                   </span>
 
                 )
@@ -378,6 +427,8 @@ function ProjectCard({
 
         <div
           className="project-overlay"
+          role="presentation"
+          data-lenis-prevent
           onClick={onToggle}
         >
 
@@ -387,6 +438,11 @@ function ProjectCard({
               project-overlay-card
               is-expanded
             "
+            id={`${project.id}-dialog`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`${project.id}-title`}
+            tabIndex={-1}
 
             style={{
               "--project-color":
@@ -394,12 +450,57 @@ function ProjectCard({
 
               "--project-surface":
                 project.surface,
+
+              "--project-text-color":
+                project.textColor || "#ffffff",
             }}
 
             onClick={(event) =>
               event.stopPropagation()
             }
+            onKeyDown={(event) => {
+              if (event.key !== "Tab") return;
+
+              const focusableElements = Array.from(
+                event.currentTarget.querySelectorAll(
+                  'button:not([disabled]), a[href], video[controls], [tabindex]:not([tabindex="-1"])'
+                )
+              );
+
+              if (!focusableElements.length) {
+                event.preventDefault();
+                event.currentTarget.focus();
+                return;
+              }
+
+              const firstElement = focusableElements[0];
+              const lastElement = focusableElements[focusableElements.length - 1];
+
+              if (
+                event.shiftKey &&
+                document.activeElement === firstElement
+              ) {
+                event.preventDefault();
+                lastElement.focus();
+              } else if (
+                !event.shiftKey &&
+                document.activeElement === lastElement
+              ) {
+                event.preventDefault();
+                firstElement.focus();
+              }
+            }}
           >
+
+            <button
+              ref={closeButtonRef}
+              className="project-close-button"
+              type="button"
+              aria-label={`Close ${project.title} details`}
+              onClick={onToggle}
+            >
+              ×
+            </button>
 
             <div className="project-expanded-layout">
 
@@ -420,7 +521,7 @@ function ProjectCard({
                   </p>
 
 
-                  <h3>
+                  <h3 id={`${project.id}-title`}>
                     {project.title}
                   </h3>
 
@@ -431,11 +532,7 @@ function ProjectCard({
                       (tag) => (
 
                         <span key={tag}>
-                          #
-                          {tag.replace(
-                            /\s+/g,
-                            ""
-                          )}
+                          {tag}
                         </span>
 
                       )
@@ -481,11 +578,11 @@ function ProjectCard({
                     <div>
 
                       <h4>
-                        Challenges
+                        Process
                       </h4>
 
                       <p>
-                        {project.challenges}
+                        {project.process}
                       </p>
 
                     </div>
@@ -502,11 +599,11 @@ function ProjectCard({
                     <div>
 
                       <h4>
-                        Process
+                        Challenges
                       </h4>
 
                       <p>
-                        {project.process}
+                        {project.challenges}
                       </p>
 
                     </div>
@@ -548,7 +645,6 @@ function ProjectCard({
 
                 <ExpandedImageCarousel
                   project={project}
-                  onToggle={onToggle}
                 />
 
               </div>

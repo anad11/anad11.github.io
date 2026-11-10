@@ -1,13 +1,44 @@
 export const experiences = [
   {
+    id: "red-rabbit-robotics",
+
+    role: "Software Development Intern",
+    company: "Red Rabbit Robotics",
+    date: "September 2026 – December 2026",
+
+    logo: "/images/experience/redrabbitlogo.png",
+    photo: "/images/experience/redrabbitphoto.png",
+    logoBackground: "#f2eee8",
+
+    color: "#70b7d8",
+    glow: "rgba(112, 183, 216, 0.18)",
+
+    description: [
+      "Developed and simulated collision-aware T-shirt pick-and-place trajectories using ROS 2 and Gazebo.",
+      "Assembled, wired, and integrated a 6-DOF RealMan robotic arm with in-house software through its Python API.",
+      "Created an automated robot-camera calibration program using Python, OpenCV, and ChArUco marker detection, reducing calibration time by 80%.",
+      "Troubleshot sim-to-real integration and optimized inverse kinematics, gains, and path planning to achieve a 6-second pick cycle.",
+    ],
+
+    tags: [
+      "ROS2",
+      "Gazebo",
+      "RealMan",
+      "Sim-to-Real",
+      "Inverse Kinematics",
+      "Path Planning",
+    ],
+  },
+
+  {
     id: "apera",
 
     role: "Roboticist Co-op",
     company: "Apera AI",
     date: "January 2026 – April 2026",
 
-    logo: "/images/aperalogo.png",
-    photo: "/images/aperaphoto.png",
+    logo: "/images/experience/aperalogo.png",
+    photo: "/images/experience/aperaphoto.png",
     logoBackground: "#fffffe",
 
     color: "#31d6c5",
@@ -21,11 +52,12 @@ export const experiences = [
     ],
 
     tags: [
-      "Robotics",
-      "KAREL",
       "FANUC",
+      "Universal Robots",
+      "KAREL",
       "Python",
       "OpenCV",
+      "ChArUco",
     ],
   },
 
@@ -36,8 +68,8 @@ export const experiences = [
   company: "Waterloo Interactive Robotics Lab",
   date: "September 2025 – December 2025",
 
-  logo: "/images/airlablogo.png",
-  photo: "/images/airlabphoto.png",
+  logo: "/images/experience/airlablogo.png",
+  photo: "/images/experience/airlabphoto.png",
   logoBackground: "#3c3a3a",
 
   color: "#5fa8ff",
@@ -54,8 +86,9 @@ export const experiences = [
     "ROS2",
     "MoveIt2",
     "Gazebo",
-    "Robotics",
-    "ComputerVision",
+    "YOLO",
+    "Force Sensing",
+    "3D Printing",
   ],
 },
 
@@ -66,8 +99,8 @@ export const experiences = [
     company: "Schneider Electric",
     date: "May 2025 – August 2025",
 
-    logo: "/images/schneiderlogo.png",
-    photo: "/images/schneider1photo.png",
+    logo: "/images/experience/schneiderlogo.png",
+    photo: "/images/experience/schneider1photo.png",
     logoBackground: "#e9e7e7",
 
     color: "#8274ff",
@@ -83,9 +116,9 @@ export const experiences = [
     tags: [
       "Python",
       "PyQt6",
-      "OpenCV",
-      "Automation",
+      "Multithreading",
       "Selenium",
+      "OpenCV",
     ],
   },
 
@@ -96,8 +129,8 @@ export const experiences = [
     company: "Schneider Electric",
     date: "September 2024 – December 2024",
 
-    logo: "/images/schneiderlogo.png",
-    photo: "/images/schneider2photo.png",
+    logo: "/images/experience/schneiderlogo.png",
+    photo: "/images/experience/schneider2photo.png",
     logoBackground: "#e9e7e7",
 
     color: "#ff7597",
@@ -113,9 +146,9 @@ export const experiences = [
     tags: [
       "Python",
       "C++",
-      "Testing",
-      "Automation",
-      "Electronics",
+      "Test Generation",
+      "Simulation",
+      "Validation",
     ],
   },
 
@@ -126,8 +159,8 @@ export const experiences = [
     company: "PET Power Containers",
     date: "January 2024 – April 2024",
 
-    logo: "/images/petpowerlogo.png",
-    photo: "/images/petpowerphoto.png",
+    logo: "/images/experience/petpowerlogo.png",
+    photo: "/images/experience/petpowerphoto.png",
     logoBackground: "#fffffb",
 
     color: "#f5c84c",
@@ -140,10 +173,10 @@ export const experiences = [
     ],
 
     tags: [
-      "Data",
-      "Engineering",
-      "Automation",
+      "Data Management",
       "Technical Drawings",
+      "Packaging Calculations",
+      "Workflow Integration",
     ],
   },
 ];
