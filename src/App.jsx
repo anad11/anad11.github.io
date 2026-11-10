@@ -481,11 +481,6 @@ function App() {
 
             <div className="hero-copy">
 
-              <p className="hero-eyebrow">
-                MECHATRONICS ENGINEERING
-              </p>
-
-
               <h1 className="hero-title">
 
                 <span>
@@ -500,10 +495,10 @@ function App() {
 
 
               <p className="hero-description">
-                I build robotics, automation,
-                and intelligent systems through
-                software, mechanical design,
-                and hands-on engineering.
+                 I'm a third-year Mechatronics Engineering student 
+                 at the University of Waterloo, passionate about 
+                 building robotics and automation systems across 
+                 software, controls, and mechanical design.
               </p>
 
 
