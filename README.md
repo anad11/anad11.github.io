@@ -1,16 +1,34 @@
-# React + Vite
+## Ana Dimitrievska — Portfolio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A personal portfolio built with React and Vite, featuring project work, professional experience, and contact links.
 
-Currently, two official plugins are available:
+## Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Install the locked dependencies and start the local development server:
 
-## React Compiler
+```sh
+npm ci
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Validation and production build
 
-## Expanding the ESLint configuration
+```sh
+npm run lint
+npm run build
+npm run preview
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The production site is generated in `dist/`.
+
+## Updating portfolio content
+
+- Project copy and media paths: `src/data/projects.js`
+- Work experience: `src/data/experience.js`
+- Static images, videos, and downloadable documents: `public/`
+
+Use browser-supported video formats such as H.264 MP4 or WebM for the broadest playback support.
+
+## Deployment
+
+The GitHub Actions workflow in `.github/workflows/deploy.yml` runs lint and build checks, then publishes `dist/` to GitHub Pages when changes are pushed to `main`.

@@ -658,6 +658,7 @@ function App() {
               className="footer-download-button"
               href="/Documents/Ana_Dimitrievska_Resume.pdf"
               download="Ana-Dimitrievska-Resume.pdf"
+              onClick={() => window.plausible?.("Resume Download")}
             >
               Download Resume <span aria-hidden="true">↓</span>
             </a>
@@ -665,6 +666,7 @@ function App() {
               className="footer-download-button footer-download-secondary"
               href="/Documents/Ana_Dimitrievska_Portfolio.pdf"
               download="Ana-Dimitrievska-Portfolio.pdf"
+              onClick={() => window.plausible?.("Portfolio Download")}
             >
               Download Portfolio <span aria-hidden="true">↓</span>
             </a>
