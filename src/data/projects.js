@@ -1,44 +1,4 @@
 export const projects = [
-  {
-    id: "sim-to-real-pick-and-place",
-
-    title: "Sim-To-Real Pick and Place",
-    organization: "Red Rabbit Robotics | Co-op",
-
-    images: [
-      "/images/real2sim/1.png",
-      "/images/real2sim/222.mp4",
-      "/images/real2sim/3.mov",
-      "/images/real2sim/4.png",
-    ],
-
-    color: "#70b7d8",
-    surface: "#3e7895",
-
-    summary:
-      "Built and deployed collision-aware T-shirt pick-and-place trajectories across Gazebo simulation and a 6-DOF RealMan robot.",
-
-    tags: [
-      "ROS2",
-      "Gazebo",
-      "RealMan",
-      "Sim-to-Real",
-      "Path Planning",
-      "Python API",
-    ],
-
-    objective:
-      "Automate T-shirt handling by transferring collision-aware pick-and-place motions from ROS2 and Gazebo to a physical 6-DOF RealMan arm.",
-
-    challenges:
-      "Troubleshooting CAN bus communication and hardware integration while resolving differences between simulated and physical robot behavior.",
-
-    process:
-      "Assembled and wired the robotic system, including an external emergency stop. Simulated and collision-checked trajectories in ROS2 and Gazebo, then connected the physical arm through its Python API and integrated the in-house software.",
-
-    result:
-      "Deployed the sim-to-real workflow on the physical robot and achieved a 6-second pick cycle with collision-aware motion planning.",
-  },
 
   {
     id: "robot-arm",
@@ -77,6 +37,47 @@ export const projects = [
     result:
       "The project is in progress, with the mechanical and software architecture established for vision-guided manipulation.",
   },
+
+  
+  {
+    id: "tiago-pick-place",
+
+    title: "Tiago-Pro Pick & Place",
+    organization: "Waterloo Interactive Robotics Lab",
+
+    images: [
+      "/images/tiago-pick-place/1.png",
+      "/images/tiago-pick-place/2.png",
+      "/images/tiago-pick-place/3.png",
+    ],
+
+    color: "#66a7ff",
+    surface: "#4678b8",
+
+    summary:
+      "Motion planning and manipulation software for a 7-DOF PAL Tiago-Pro robotic arm.",
+
+    tags: [
+      "ROS2",
+      "MoveIt2",
+      "Gazebo",
+      "Robotics",
+      "Motion Planning",
+    ],
+
+    objective:
+      "Develop ROS2 control software for a 7-DOF PAL Tiago-Pro robotic arm to perform simulated pick-and-place operations.",
+
+    challenges:
+      "Integrating multiple ROS2 systems, creating a custom camera mount, developing reliable motion planning, and working across Docker and Linux environments.",
+
+    process:
+      "Developed and tested motion control, trajectory planning, gripper control, and simulated sensor integration while refining arm movement through iterative testing and debugging.",
+
+    result:
+      "Created a functional simulated pick-and-place workflow with coordinated robotic arm movement.",
+  },
+
 
   {
     id: "robot-hand",
@@ -173,8 +174,9 @@ export const projects = [
       "/images/rocket-tower-mount/3.png",
     ],
 
-    color: "#66a7ff",
-    surface: "#4678b8",
+    color: "#fbaee9",
+    surface: "#ff85bca9",
+
     textColor: "#ffffff",
 
     summary:
